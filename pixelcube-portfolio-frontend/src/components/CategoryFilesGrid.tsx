@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { DriveFile, getFileUrl, getFileThumbnail, getFilePreviewUrl, getFileType, isDemoMode } from "@/lib/drive";
+import { useRouter } from "next/navigation";
+import { DriveFile, getFileUrl, getFileThumbnail, getFilePreviewUrl, getFileType, isFolder, isDemoMode } from "@/lib/drive";
 import Lightbox from "@/components/Lightbox";
 
 interface CategoryFilesGridProps {
@@ -9,7 +10,7 @@ interface CategoryFilesGridProps {
     categoryName: string;
 }
 
-// Generate varied visual properties for demo items
+// Demo visual properties
 const DEMO_GRADIENTS = [
     "linear-gradient(135deg, #1a1a2e, #16213e)",
     "linear-gradient(135deg, #0f0f1a, #1a0a2e)",
@@ -20,9 +21,7 @@ const DEMO_GRADIENTS = [
     "linear-gradient(135deg, #1a1a0a, #2e2e1a)",
     "linear-gradient(135deg, #0f0f0f, #1f1f2f)",
 ];
-
 const DEMO_HEIGHTS = [280, 350, 220, 400, 300, 260, 380, 320, 240, 360];
-
 const DEMO_ICONS = ["◇", "◆", "○", "□", "△", "▽", "⬡", "◈", "✦", "⬢"];
 
 export default function CategoryFilesGrid({
@@ -31,6 +30,11 @@ export default function CategoryFilesGrid({
 }: CategoryFilesGridProps) {
     const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
     const demoMode = isDemoMode();
+    const router = useRouter();
+
+    // Separate folders from files
+    const folders = files.filter(f => isFolder(f));
+    const actualFiles = files.filter(f => !isFolder(f));
 
     const renderFileContent = (file: DriveFile, index: number) => {
         if (demoMode) {
@@ -61,145 +65,242 @@ export default function CategoryFilesGrid({
 
         const fileType = getFileType(file.mimeType);
 
-        if (fileType === "video") {
-            return (
-                <div style={{ position: "relative", background: "#111", minHeight: "250px" }}>
-                    <iframe
-                        src={getFilePreviewUrl(file.id)}
-                        style={{
-                            width: "100%",
-                            height: "300px",
-                            border: "none",
-                            display: "block",
-                        }}
-                        allow="autoplay; encrypted-media"
-                        allowFullScreen
-                        loading="lazy"
-                    />
-                    <div
-                        style={{
-                            position: "absolute",
-                            bottom: "12px",
-                            left: "12px",
-                            background: "rgba(0,0,0,0.7)",
-                            padding: "4px 10px",
-                            borderRadius: "4px",
-                            fontSize: "0.7rem",
-                            color: "rgba(255,255,255,0.7)",
-                            pointerEvents: "none",
-                        }}
-                    >
-                        ▶ Video
-                    </div>
-                </div>
-            );
-        }
+        // Use the thumbnailLink from Google Drive API — works for images, videos, and PDFs
+        // Upscale from =s220 to =s800 for better quality
+        const thumbnailSrc = file.thumbnailLink
+            ? file.thumbnailLink.replace("=s220", "=s800")
+            : getFileUrl(file.id); // fallback to proxy
 
-        if (fileType === "pdf") {
-            return (
-                <div
+        return (
+            <div style={{ position: "relative", background: "#111", minHeight: "180px" }}>
+                <img
+                    src={thumbnailSrc}
+                    alt={file.name}
+                    loading="lazy"
                     style={{
-                        position: "relative",
-                        background: "#111",
-                        minHeight: "200px",
+                        width: "100%",
+                        display: "block",
+                        minHeight: "180px",
+                        objectFit: "cover",
+                    }}
+                    onError={(e) => {
+                        // Fallback: try the proxy URL if thumbnail fails
+                        const target = e.currentTarget;
+                        if (!target.dataset.retried) {
+                            target.dataset.retried = "true";
+                            target.src = getFileUrl(file.id);
+                        }
+                    }}
+                />
+                {/* Video badge */}
+                {fileType === "video" && (
+                    <div style={{
+                        position: "absolute",
+                        top: "50%",
+                        left: "50%",
+                        transform: "translate(-50%, -50%)",
+                        width: "48px",
+                        height: "48px",
+                        borderRadius: "50%",
+                        background: "rgba(0,0,0,0.6)",
+                        backdropFilter: "blur(4px)",
                         display: "flex",
-                        flexDirection: "column",
                         alignItems: "center",
                         justifyContent: "center",
-                        gap: "12px",
-                        padding: "24px",
-                    }}
-                >
-                    <img
-                        src={getFileThumbnail(file.id)}
-                        alt={file.name}
-                        loading="lazy"
-                        style={{ width: "100%", display: "block", borderRadius: "4px" }}
-                        onError={(e) => {
-                            const target = e.currentTarget;
-                            target.style.display = "none";
-                            const parent = target.parentElement;
-                            if (parent) {
-                                const fallback = document.createElement("div");
-                                fallback.innerHTML = `
-                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.5">
-                                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-                                        <polyline points="14 2 14 8 20 8"/>
-                                    </svg>
-                                    <span style="font-size:0.8rem;color:rgba(255,255,255,0.4);margin-top:8px">PDF Document</span>
-                                `;
-                                fallback.style.cssText = "display:flex;flex-direction:column;align-items:center;padding:40px;";
-                                parent.appendChild(fallback);
-                            }
-                        }}
-                    />
-                    <div
-                        style={{
-                            position: "absolute",
-                            bottom: "12px",
-                            right: "12px",
-                            background: "rgba(255,59,48,0.8)",
-                            padding: "4px 10px",
-                            borderRadius: "4px",
-                            fontSize: "0.65rem",
-                            fontWeight: 600,
-                            color: "#fff",
-                            textTransform: "uppercase",
-                            letterSpacing: "0.05em",
-                        }}
-                    >
+                        pointerEvents: "none",
+                    }}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                            <polygon points="5 3 19 12 5 21 5 3" />
+                        </svg>
+                    </div>
+                )}
+                {/* PDF badge */}
+                {fileType === "pdf" && (
+                    <div style={{
+                        position: "absolute",
+                        bottom: "10px",
+                        right: "10px",
+                        background: "rgba(255,59,48,0.85)",
+                        padding: "4px 10px",
+                        borderRadius: "4px",
+                        fontSize: "0.65rem",
+                        fontWeight: 700,
+                        color: "#fff",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                        pointerEvents: "none",
+                    }}>
                         PDF
                     </div>
-                </div>
-            );
-        }
-
-        // Default: image
-        return (
-            <img
-                src={getFileUrl(file.id)}
-                alt={file.name}
-                loading="lazy"
-                style={{ width: "100%", display: "block" }}
-                onError={(e) => {
-                    const target = e.currentTarget;
-                    if (!target.dataset.retried) {
-                        target.dataset.retried = "true";
-                        target.src = getFileThumbnail(file.id);
-                    }
-                }}
-            />
+                )}
+            </div>
         );
     };
 
     return (
         <>
-            <div className="masonry-grid">
-                {files.map((file, index) => {
-                    const fileType = getFileType(file.mimeType);
-                    return (
-                        <div
-                            key={file.id}
-                            className="masonry-item"
-                            onClick={() => {
-                                if (fileType !== "video") {
-                                    setLightboxIndex(index);
-                                }
-                            }}
-                        >
-                            {renderFileContent(file, index)}
-                            <div className="masonry-item-overlay">
-                                <span className="masonry-item-name">{file.name}</span>
-                                <span className="masonry-item-type">{fileType}</span>
+            {/* ===== FOLDERS SECTION ===== */}
+            {folders.length > 0 && (
+                <div style={{ marginBottom: "32px" }}>
+                    <div style={{
+                        fontSize: "0.7rem",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.2em",
+                        color: "var(--text-muted)",
+                        marginBottom: "16px",
+                        fontWeight: 600,
+                    }}>
+                        Folders ({folders.length})
+                    </div>
+                    <div style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+                        gap: "12px",
+                    }}>
+                        {folders.map((folder) => (
+                            <div
+                                key={folder.id}
+                                onClick={() => router.push(`/category/${folder.id}`)}
+                                style={{
+                                    background: "var(--bg-card)",
+                                    border: "1px solid var(--border-color)",
+                                    borderRadius: "12px",
+                                    padding: "20px",
+                                    cursor: "pointer",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "14px",
+                                    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.borderColor = "var(--border-hover)";
+                                    e.currentTarget.style.transform = "translateY(-2px)";
+                                    e.currentTarget.style.boxShadow = "0 8px 30px rgba(0,0,0,0.3)";
+                                    e.currentTarget.style.background = "var(--bg-card-hover)";
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.borderColor = "var(--border-color)";
+                                    e.currentTarget.style.transform = "translateY(0)";
+                                    e.currentTarget.style.boxShadow = "none";
+                                    e.currentTarget.style.background = "var(--bg-card)";
+                                }}
+                            >
+                                {/* Folder Icon */}
+                                <div style={{
+                                    width: "44px",
+                                    height: "44px",
+                                    borderRadius: "10px",
+                                    background: "rgba(255, 200, 50, 0.1)",
+                                    border: "1px solid rgba(255, 200, 50, 0.15)",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    flexShrink: 0,
+                                }}>
+                                    <svg
+                                        width="22"
+                                        height="22"
+                                        viewBox="0 0 24 24"
+                                        fill="rgba(255, 200, 50, 0.6)"
+                                        stroke="rgba(255, 200, 50, 0.8)"
+                                        strokeWidth="1.5"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                    >
+                                        <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
+                                    </svg>
+                                </div>
+                                {/* Folder Name */}
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{
+                                        fontSize: "0.9rem",
+                                        fontWeight: 500,
+                                        color: "var(--text-primary)",
+                                        whiteSpace: "nowrap",
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                    }}>
+                                        {folder.name}
+                                    </div>
+                                    <div style={{
+                                        fontSize: "0.7rem",
+                                        color: "var(--text-muted)",
+                                        marginTop: "2px",
+                                    }}>
+                                        Folder
+                                    </div>
+                                </div>
+                                {/* Arrow */}
+                                <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="var(--text-muted)"
+                                    strokeWidth="2"
+                                    style={{ flexShrink: 0 }}
+                                >
+                                    <polyline points="9 18 15 12 9 6" />
+                                </svg>
                             </div>
-                        </div>
-                    );
-                })}
-            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
+            {/* ===== FILES SECTION ===== */}
+            {actualFiles.length > 0 && (
+                <div>
+                    {folders.length > 0 && (
+                        <div style={{
+                            fontSize: "0.7rem",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.2em",
+                            color: "var(--text-muted)",
+                            marginBottom: "16px",
+                            fontWeight: 600,
+                        }}>
+                            Files ({actualFiles.length})
+                        </div>
+                    )}
+                    <div className="masonry-grid">
+                        {actualFiles.map((file, index) => {
+                            const fileType = getFileType(file.mimeType);
+                            return (
+                                <div
+                                    key={file.id}
+                                    className="masonry-item"
+                                    onClick={() => {
+                                        setLightboxIndex(index);
+                                    }}
+                                >
+                                    {renderFileContent(file, index)}
+                                    <div className="masonry-item-overlay">
+                                        <span className="masonry-item-name">{file.name}</span>
+                                        <span className="masonry-item-type">{fileType}</span>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
+            {/* Empty state */}
+            {folders.length === 0 && actualFiles.length === 0 && (
+                <div style={{
+                    textAlign: "center",
+                    padding: "80px 0",
+                    color: "var(--text-tertiary)",
+                }}>
+                    <p>This folder is empty.</p>
+                </div>
+            )}
+
+            {/* Lightbox for files only */}
             {lightboxIndex !== null && (
                 <Lightbox
-                    files={files}
+                    files={actualFiles}
                     currentIndex={lightboxIndex}
                     onClose={() => setLightboxIndex(null)}
                     isDemoMode={demoMode}

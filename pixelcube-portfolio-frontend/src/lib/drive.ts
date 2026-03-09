@@ -64,33 +64,44 @@ export async function getCategories(): Promise<Category[]> {
   }
 }
 
-// Fetch all files inside a specific category folder
-export async function getCategoryFiles(folderId: string): Promise<DriveFile[]> {
+// Fetch all items (files AND folders) inside a folder — does NOT recurse
+export async function getFolderContents(folderId: string): Promise<DriveFile[]> {
   if (!API_KEY) return [];
 
   try {
-    const url = `${DRIVE_API_BASE}/files?q='${folderId}'+in+parents+and+trashed=false&key=${API_KEY}&fields=files(id,name,mimeType,thumbnailLink,webContentLink,webViewLink,createdTime,modifiedTime,size,imageMediaMetadata)&orderBy=name&pageSize=100`;
+    // Fetch both files and folders, ordered: folders first, then files
+    const url = `${DRIVE_API_BASE}/files?q='${folderId}'+in+parents+and+trashed=false&key=${API_KEY}&fields=files(id,name,mimeType,thumbnailLink,webContentLink,webViewLink,createdTime,modifiedTime,size,imageMediaMetadata)&orderBy=folder,name&pageSize=100`;
     const res = await fetch(url, { next: { revalidate: 60 } });
     const data = await res.json();
 
     return data.files || [];
   } catch (error) {
-    console.error('Error fetching category files:', error);
+    console.error('Error fetching folder contents:', error);
     return [];
   }
 }
 
-// Get a direct viewable URL for a Google Drive image
+// Check if a Drive item is a folder
+export function isFolder(file: DriveFile): boolean {
+  return file.mimeType === 'application/vnd.google-apps.folder';
+}
+
+// Backward-compatible alias
+export async function getCategoryFiles(folderId: string): Promise<DriveFile[]> {
+  return getFolderContents(folderId);
+}
+
+// Get a direct viewable URL for a Google Drive image (uses local API proxy)
 export function getFileUrl(fileId: string): string {
-  return `https://lh3.googleusercontent.com/d/${fileId}`;
+  return `/api/drive-file/${fileId}`;
 }
 
-// Get thumbnail URL (for smaller previews)
+// Get thumbnail URL (for smaller previews — uses local API proxy)
 export function getFileThumbnail(fileId: string): string {
-  return `https://lh3.googleusercontent.com/d/${fileId}=w800`;
+  return `/api/drive-file/${fileId}`;
 }
 
-// Get embeddable preview URL (for videos and PDFs)
+// Get embeddable preview URL (for videos and PDFs — uses Google Drive embed)
 export function getFilePreviewUrl(fileId: string): string {
   return `https://drive.google.com/file/d/${fileId}/preview`;
 }
@@ -108,7 +119,7 @@ export function getFileType(mimeType: string): 'image' | 'video' | 'pdf' | 'othe
   return 'other';
 }
 
-// Get category details with files
+// Get category/folder details with its contents (both folders and files)
 export async function getCategoryWithFiles(categoryId: string): Promise<Category | null> {
   if (!API_KEY || !ROOT_FOLDER_ID) {
     return getDemoCategoryWithFiles(categoryId);
@@ -120,15 +131,19 @@ export async function getCategoryWithFiles(categoryId: string): Promise<Category
     const folderRes = await fetch(folderUrl, { next: { revalidate: 60 } });
     const folder = await folderRes.json();
 
-    // Get files
-    const files = await getCategoryFiles(categoryId);
+    // Get all items inside this folder (folders + files)
+    const items = await getFolderContents(categoryId);
+
+    // Count only actual files (not subfolders) for the badge
+    const actualFiles = items.filter(item => !isFolder(item));
+    const firstFile = actualFiles.length > 0 ? actualFiles[0] : null;
 
     return {
       id: folder.id,
       name: folder.name,
-      fileCount: files.length,
-      thumbnail: files.length > 0 ? getFileThumbnail(files[0].id) : null,
-      files,
+      fileCount: items.length,
+      thumbnail: firstFile ? getFileThumbnail(firstFile.id) : null,
+      files: items, // contains both folders and files
     };
   } catch (error) {
     console.error('Error fetching category with files:', error);
