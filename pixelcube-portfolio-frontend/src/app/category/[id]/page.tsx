@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { getCategoryWithFiles, getCategories, isDemoMode } from "@/lib/drive";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CategoryFilesGrid from "@/components/CategoryFilesGrid";
+import BackButton from "@/components/BackButton";
 
 export const revalidate = 60;
 
@@ -29,17 +29,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
                 <Header />
                 <main className="main-content">
                     <div className="category-page container">
-                        <Link href="/" className="category-back">
-                            <svg
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                            >
-                                <polyline points="15 18 9 12 15 6" />
-                            </svg>
-                            Back to Home
-                        </Link>
+                        <BackButton />
                         <div className="category-hero">
                             <h1>Category Not Found</h1>
                             <p>The category you&apos;re looking for doesn&apos;t exist.</p>
@@ -57,18 +47,8 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
 
             <main className="main-content">
                 <div className="category-page container">
-                    {/* Back link */}
-                    <Link href="/" className="category-back">
-                        <svg
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                        >
-                            <polyline points="15 18 9 12 15 6" />
-                        </svg>
-                        Back to Home
-                    </Link>
+                    {/* Back button */}
+                    <BackButton />
 
                     {/* Category Hero */}
                     <div className="category-hero">

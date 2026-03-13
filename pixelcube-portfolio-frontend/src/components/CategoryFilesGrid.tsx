@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import FolderTile from "@/components/FolderTile";
 import { DriveFile, getFileUrl, getFileThumbnail, getFilePreviewUrl, getFileType, isFolder, isDemoMode } from "@/lib/drive";
 import Lightbox from "@/components/Lightbox";
 
@@ -30,7 +30,6 @@ export default function CategoryFilesGrid({
 }: CategoryFilesGridProps) {
     const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
     const demoMode = isDemoMode();
-    const router = useRouter();
 
     // Separate folders from files
     const folders = files.filter(f => isFolder(f));
@@ -139,110 +138,16 @@ export default function CategoryFilesGrid({
 
     return (
         <>
-            {/* ===== FOLDERS SECTION ===== */}
+            {/* ===== FOLDERS SECTION (Tile Layout) ===== */}
             {folders.length > 0 && (
-                <div style={{ marginBottom: "32px" }}>
-                    <div style={{
-                        fontSize: "0.7rem",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.2em",
-                        color: "var(--text-muted)",
-                        marginBottom: "16px",
-                        fontWeight: 600,
-                    }}>
-                        Folders ({folders.length})
-                    </div>
-                    <div style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
-                        gap: "12px",
-                    }}>
-                        {folders.map((folder) => (
-                            <div
+                <div style={{ marginBottom: "48px" }}>
+                    <div className="category-grid">
+                        {folders.map((folder, index) => (
+                            <FolderTile
                                 key={folder.id}
-                                onClick={() => router.push(`/category/${folder.id}`)}
-                                style={{
-                                    background: "var(--bg-card)",
-                                    border: "1px solid var(--border-color)",
-                                    borderRadius: "12px",
-                                    padding: "20px",
-                                    cursor: "pointer",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "14px",
-                                    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.borderColor = "var(--border-hover)";
-                                    e.currentTarget.style.transform = "translateY(-2px)";
-                                    e.currentTarget.style.boxShadow = "0 8px 30px rgba(0,0,0,0.3)";
-                                    e.currentTarget.style.background = "var(--bg-card-hover)";
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.borderColor = "var(--border-color)";
-                                    e.currentTarget.style.transform = "translateY(0)";
-                                    e.currentTarget.style.boxShadow = "none";
-                                    e.currentTarget.style.background = "var(--bg-card)";
-                                }}
-                            >
-                                {/* Folder Icon */}
-                                <div style={{
-                                    width: "44px",
-                                    height: "44px",
-                                    borderRadius: "10px",
-                                    background: "rgba(255, 200, 50, 0.1)",
-                                    border: "1px solid rgba(255, 200, 50, 0.15)",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    flexShrink: 0,
-                                }}>
-                                    <svg
-                                        width="22"
-                                        height="22"
-                                        viewBox="0 0 24 24"
-                                        fill="rgba(255, 200, 50, 0.6)"
-                                        stroke="rgba(255, 200, 50, 0.8)"
-                                        strokeWidth="1.5"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                    >
-                                        <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
-                                    </svg>
-                                </div>
-                                {/* Folder Name */}
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{
-                                        fontSize: "0.9rem",
-                                        fontWeight: 500,
-                                        color: "var(--text-primary)",
-                                        whiteSpace: "nowrap",
-                                        overflow: "hidden",
-                                        textOverflow: "ellipsis",
-                                    }}>
-                                        {folder.name}
-                                    </div>
-                                    <div style={{
-                                        fontSize: "0.7rem",
-                                        color: "var(--text-muted)",
-                                        marginTop: "2px",
-                                    }}>
-                                        Folder
-                                    </div>
-                                </div>
-                                {/* Arrow */}
-                                <svg
-                                    width="16"
-                                    height="16"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="var(--text-muted)"
-                                    strokeWidth="2"
-                                    style={{ flexShrink: 0 }}
-                                >
-                                    <polyline points="9 18 15 12 9 6" />
-                                </svg>
-                            </div>
+                                folder={folder}
+                                index={index}
+                            />
                         ))}
                     </div>
                 </div>
