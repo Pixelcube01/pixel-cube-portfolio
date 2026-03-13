@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
-import { Category, getFileThumbnail } from "@/lib/drive";
+import { Category } from "@/lib/drive";
+import MagicCard from "@/components/MagicCard";
 
 // Icon mapping for demo categories
 const CATEGORY_ICONS: Record<string, string> = {
@@ -36,43 +39,46 @@ export default function CategoryTile({ category, index }: CategoryTileProps) {
     const pattern = PATTERNS[index % PATTERNS.length];
 
     return (
-        <Link href={`/category/${category.id}`} className="tile">
-            {/* Background image if available */}
-            {category.thumbnail ? (
-                <div
-                    className="tile-bg"
-                    style={{ backgroundImage: `url(${category.thumbnail})` }}
-                />
-            ) : (
+        <MagicCard>
+            <Link href={`/category/${category.id}`} className="tile">
+                {/* Always show pattern as base */}
                 <div className={`tile-pattern ${pattern}`} />
-            )}
 
-            <div className="tile-gradient" />
+                {/* Overlay thumbnail if available */}
+                {category.thumbnail && (
+                    <div
+                        className="tile-bg"
+                        style={{ backgroundImage: `url(${category.thumbnail})` }}
+                    />
+                )}
 
-            {/* Icon */}
-            <div className="tile-icon">{icon}</div>
+                <div className="tile-gradient" />
 
-            {/* Content */}
-            <div className="tile-content">
-                <span className="tile-category-label">Category</span>
-                <h3 className="tile-name">{category.name}</h3>
-                <div className="tile-meta">
-                    <span className="tile-count">{category.fileCount} projects</span>
-                    <div className="tile-arrow">
-                        <svg
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                        >
-                            <path d="M7 17L17 7" />
-                            <path d="M7 7h10v10" />
-                        </svg>
+                {/* Icon */}
+                <div className="tile-icon">{icon}</div>
+
+                {/* Content */}
+                <div className="tile-content">
+                    <span className="tile-category-label">Category</span>
+                    <h3 className="tile-name">{category.name}</h3>
+                    <div className="tile-meta">
+                        <span className="tile-count">{category.fileCount} projects</span>
+                        <div className="tile-arrow">
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                            >
+                                <path d="M7 17L17 7" />
+                                <path d="M7 7h10v10" />
+                            </svg>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </Link>
+            </Link>
+        </MagicCard>
     );
 }

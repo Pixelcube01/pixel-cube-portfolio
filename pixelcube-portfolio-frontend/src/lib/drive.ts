@@ -52,7 +52,7 @@ export async function getCategories(): Promise<Category[]> {
           id: folder.id,
           name: folder.name,
           fileCount: files.length,
-          thumbnail,
+          thumbnail: null,
         };
       })
     );

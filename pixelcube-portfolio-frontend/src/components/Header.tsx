@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function Header() {
     const [scrolled, setScrolled] = useState(false);
@@ -18,15 +19,16 @@ export default function Header() {
         <header className={`header ${scrolled ? "scrolled" : ""}`}>
             <div className="header-inner">
                 <Link href="/" className="logo">
-                    <div className="logo-icon">P</div>
-                    <span>PixelCube</span>
+                    <Image
+                        src="/Images/pixelcube.png"
+                        alt="PixelCube"
+                        width={140}
+                        height={36}
+                        style={{ objectFit: "contain" }}
+                        priority
+                    />
                 </Link>
                 <nav className="nav">
-                    <Link href="/" className="active">
-                        Home
-                    </Link>
-                    <Link href="#projects">Projects</Link>
-                    <Link href="#about">About</Link>
                     <Link href="#contact">Contact</Link>
                 </nav>
             </div>

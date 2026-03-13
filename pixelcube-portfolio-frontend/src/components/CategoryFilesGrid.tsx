@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import FolderTile from "@/components/FolderTile";
 import { DriveFile, getFileUrl, getFileThumbnail, getFilePreviewUrl, getFileType, isFolder, isDemoMode } from "@/lib/drive";
 import Lightbox from "@/components/Lightbox";
@@ -29,11 +29,20 @@ export default function CategoryFilesGrid({
     categoryName,
 }: CategoryFilesGridProps) {
     const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+    const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set());
     const demoMode = isDemoMode();
 
     // Separate folders from files
     const folders = files.filter(f => isFolder(f));
     const actualFiles = files.filter(f => !isFolder(f));
+
+    const handleImageLoad = useCallback((fileId: string) => {
+        setLoadedImages(prev => {
+            const next = new Set(prev);
+            next.add(fileId);
+            return next;
+        });
+    }, []);
 
     const renderFileContent = (file: DriveFile, index: number) => {
         if (demoMode) {
@@ -63,6 +72,7 @@ export default function CategoryFilesGrid({
         }
 
         const fileType = getFileType(file.mimeType);
+        const isLoaded = loadedImages.has(file.id);
 
         // Use the thumbnailLink from Google Drive API — works for images, videos, and PDFs
         // Upscale from =s220 to =s800 for better quality
@@ -72,6 +82,19 @@ export default function CategoryFilesGrid({
 
         return (
             <div style={{ position: "relative", background: "#111", minHeight: "180px" }}>
+                {/* Skeleton shimmer — visible while image loads */}
+                {!isLoaded && (
+                    <div
+                        className="skeleton"
+                        style={{
+                            position: "absolute",
+                            inset: 0,
+                            minHeight: "180px",
+                            borderRadius: 0,
+                            zIndex: 1,
+                        }}
+                    />
+                )}
                 <img
                     src={thumbnailSrc}
                     alt={file.name}
@@ -81,13 +104,19 @@ export default function CategoryFilesGrid({
                         display: "block",
                         minHeight: "180px",
                         objectFit: "cover",
+                        opacity: isLoaded ? 1 : 0,
+                        transition: "opacity 0.4s ease",
                     }}
+                    onLoad={() => handleImageLoad(file.id)}
                     onError={(e) => {
                         // Fallback: try the proxy URL if thumbnail fails
                         const target = e.currentTarget;
                         if (!target.dataset.retried) {
                             target.dataset.retried = "true";
                             target.src = getFileUrl(file.id);
+                        } else {
+                            // If proxy also fails, show the image anyway (remove skeleton)
+                            handleImageLoad(file.id);
                         }
                     }}
                 />
@@ -107,6 +136,7 @@ export default function CategoryFilesGrid({
                         alignItems: "center",
                         justifyContent: "center",
                         pointerEvents: "none",
+                        zIndex: 2,
                     }}>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
                             <polygon points="5 3 19 12 5 21 5 3" />
@@ -128,6 +158,7 @@ export default function CategoryFilesGrid({
                         textTransform: "uppercase",
                         letterSpacing: "0.05em",
                         pointerEvents: "none",
+                        zIndex: 2,
                     }}>
                         PDF
                     </div>

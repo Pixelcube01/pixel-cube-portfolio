@@ -24,9 +24,9 @@ export default async function Home() {
           <div className="container">
             <div className="section-header">
               <div>
-                <div className="section-label">Portfolio</div>
-                <h2 className="section-title">
-                  Categories
+                {/* <div className="section-label">Portfolio</div> */}
+                <h2 className="section-count">
+                  Creative Showcase
                 </h2>
               </div>
               <span className="section-count">
