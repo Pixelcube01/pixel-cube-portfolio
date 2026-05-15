@@ -29,7 +29,7 @@ export default function Header() {
                     />
                 </Link>
                 <nav className="nav">
-                    <Link href="#contact">Contact</Link>
+                    <a href="https://pixelcube.studio/contact/" rel="noopener noreferrer">Contact</a>
                 </nav>
             </div>
         </header>

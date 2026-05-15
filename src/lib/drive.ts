@@ -20,6 +20,8 @@ export interface DriveFile {
     width: number;
     height: number;
   };
+  // Optional server-provided card thumbnail (e.g. thumbnail.png inside a folder)
+  cardThumbnail?: string;
 }
 
 export interface Category {
@@ -156,6 +158,24 @@ export async function getCategoryWithFiles(categoryId: string): Promise<Category
 
     // Count only actual files (not subfolders) for the badge
     const actualFiles = visibleItems.filter(item => !isFolder(item));
+
+    // For any subfolder items, check inside them for their own thumbnail.png
+    // and attach it as `cardThumbnail` so the UI can render a background image.
+    for (const item of visibleItems) {
+      if (isFolder(item)) {
+        try {
+          const childItems = await getRawFolderContents(item.id);
+          const thumb = childItems.find(isThumbnailFile) || null;
+          if (thumb) {
+            // Attach a proxied thumbnail URL for the folder card
+            (item as any).cardThumbnail = getFileThumbnail(thumb.id);
+          }
+        } catch (e) {
+          // ignore per-folder errors
+        }
+      }
+    }
+
     const firstFile = actualFiles.length > 0 ? actualFiles[0] : null;
 
     return {

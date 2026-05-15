@@ -31,6 +31,15 @@ export default function FolderTile({ folder, index }: FolderTileProps) {
         <MagicCard>
             <Link href={`/category/${folder.id}`} className="tile">
                 <div className={`tile-pattern ${pattern}`} />
+
+                {/* Folder thumbnail (if present) */}
+                {(folder as any).cardThumbnail && (
+                    <div
+                        className="tile-bg"
+                        style={{ backgroundImage: `url(${(folder as any).cardThumbnail})` }}
+                    />
+                )}
+
                 <div className="tile-gradient" />
 
                 {/* Icon */}

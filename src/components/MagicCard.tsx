@@ -13,8 +13,8 @@ interface MagicCardProps {
 export default function MagicCard({
     children,
     className = "",
-    gradientSize = 250,
-    gradientColor = "#262626ff",
+    gradientSize = 500,
+    gradientColor = "#ffffff",
     gradientOpacity = 0.8,
 }: MagicCardProps) {
     const cardRef = useRef<HTMLDivElement>(null);
