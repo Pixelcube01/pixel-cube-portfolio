@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "preinstall": "npx pnpm approve-builds"
+    "preinstall": "pnpm config set auto-install-peers true"
   },
   "dependencies": {
     "next": "16.1.6",
