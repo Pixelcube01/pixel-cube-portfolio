@@ -6,8 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
-    "preinstall": "pnpm config set auto-install-peers true"
+    "lint": "eslint"
   },
   "dependencies": {
     "next": "16.1.6",
