@@ -45,14 +45,21 @@ export async function getCategories(): Promise<Category[]> {
 
     const categories: Category[] = await Promise.all(
       data.files.map(async (folder: { id: string; name: string }) => {
-        const files = await getCategoryFiles(folder.id);
-        const thumbnail = files.length > 0 ? getFileThumbnail(files[0].id) : null;
+        const allFiles = await getRawFolderContents(folder.id);
+        const thumbnailFile = allFiles.find(isThumbnailFile) || null;
+        const visibleFiles = allFiles.filter(file => !isThumbnailFile(file));
+        const actualFiles = visibleFiles.filter(file => !isFolder(file));
+        const thumbnail = thumbnailFile
+          ? getFileThumbnail(thumbnailFile.id)
+          : actualFiles.length > 0
+          ? getFileThumbnail(actualFiles[0].id)
+          : null;
 
         return {
           id: folder.id,
           name: folder.name,
-          fileCount: files.length,
-          thumbnail: null,
+          fileCount: actualFiles.length,
+          thumbnail,
         };
       })
     );
@@ -65,7 +72,13 @@ export async function getCategories(): Promise<Category[]> {
 }
 
 // Fetch all items (files AND folders) inside a folder — does NOT recurse
-export async function getFolderContents(folderId: string): Promise<DriveFile[]> {
+const THUMBNAIL_FILENAME = 'thumbnail.webp';
+
+export function isThumbnailFile(file: DriveFile): boolean {
+  return file.name?.toLowerCase() === THUMBNAIL_FILENAME;
+}
+
+export async function getRawFolderContents(folderId: string): Promise<DriveFile[]> {
   if (!API_KEY) return [];
 
   try {
@@ -79,6 +92,11 @@ export async function getFolderContents(folderId: string): Promise<DriveFile[]> 
     console.error('Error fetching folder contents:', error);
     return [];
   }
+}
+
+export async function getFolderContents(folderId: string): Promise<DriveFile[]> {
+  const allFiles = await getRawFolderContents(folderId);
+  return allFiles.filter(file => !isThumbnailFile(file));
 }
 
 // Check if a Drive item is a folder
@@ -131,19 +149,25 @@ export async function getCategoryWithFiles(categoryId: string): Promise<Category
     const folderRes = await fetch(folderUrl, { next: { revalidate: 60 } });
     const folder = await folderRes.json();
 
-    // Get all items inside this folder (folders + files)
-    const items = await getFolderContents(categoryId);
+    // Get all items inside this folder (folders + files), excluding thumbnail.png
+    const allItems = await getRawFolderContents(categoryId);
+    const thumbnailFile = allItems.find(isThumbnailFile) || null;
+    const visibleItems = allItems.filter(item => !isThumbnailFile(item));
 
     // Count only actual files (not subfolders) for the badge
-    const actualFiles = items.filter(item => !isFolder(item));
+    const actualFiles = visibleItems.filter(item => !isFolder(item));
     const firstFile = actualFiles.length > 0 ? actualFiles[0] : null;
 
     return {
       id: folder.id,
       name: folder.name,
-      fileCount: items.length,
-      thumbnail: firstFile ? getFileThumbnail(firstFile.id) : null,
-      files: items, // contains both folders and files
+      fileCount: actualFiles.length,
+      thumbnail: thumbnailFile
+        ? getFileThumbnail(thumbnailFile.id)
+        : firstFile
+        ? getFileThumbnail(firstFile.id)
+        : null,
+      files: visibleItems, // contains both folders and files, but excludes thumbnail.png
     };
   } catch (error) {
     console.error('Error fetching category with files:', error);
@@ -154,36 +178,36 @@ export async function getCategoryWithFiles(categoryId: string): Promise<Category
 // ===== DEMO DATA (Fallback when no API key is configured) =====
 
 const DEMO_CATEGORIES: Category[] = [
-  {
-    id: 'demo-3d-product',
-    name: '3D Product Design',
-    fileCount: 8,
-    thumbnail: null,
-  },
-  {
-    id: 'demo-branding',
-    name: 'Branding',
-    fileCount: 12,
-    thumbnail: null,
-  },
-  {
-    id: 'demo-motion',
-    name: 'Motion Graphics',
-    fileCount: 6,
-    thumbnail: null,
-  },
-  {
-    id: 'demo-logo',
-    name: 'PixelCube Logo',
-    fileCount: 4,
-    thumbnail: null,
-  },
-  {
-    id: 'demo-social',
-    name: 'Social Media',
-    fileCount: 15,
-    thumbnail: null,
-  },
+  // {
+  //   id: 'demo-3d-product',
+  //   name: '3D Product Design',
+  //   fileCount: 8,
+  //   thumbnail: null,
+  // },
+  // {
+  //   id: 'demo-branding',
+  //   name: 'Branding',
+  //   fileCount: 12,
+  //   thumbnail: null,
+  // },
+  // {
+  //   id: 'demo-motion',
+  //   name: 'Motion Graphics',
+  //   fileCount: 6,
+  //   thumbnail: null,
+  // },
+  // {
+  //   id: 'demo-logo',
+  //   name: 'PixelCube Logo',
+  //   fileCount: 4,
+  //   thumbnail: null,
+  // },
+  // {
+  //   id: 'demo-social',
+  //   name: 'Social Media',
+  //   fileCount: 15,
+  //   thumbnail: null,
+  // },
   {
     id: 'demo-uiux',
     name: 'UI/UX Product Design',
